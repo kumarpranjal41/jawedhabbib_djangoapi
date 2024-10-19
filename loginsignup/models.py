@@ -25,6 +25,7 @@ class Coupon(models.Model):
     coupon_code = models.CharField(max_length=50, unique=True)
     discount_percentage = models.DecimalField(max_digits=10, decimal_places=2)
     description  = models.TextField()
+    minammount  = models.TextField()
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
     active = models.BooleanField(default=True)

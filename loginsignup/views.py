@@ -29,7 +29,7 @@ class LoginViewSet(APIView):
 
             if user.password ==password:
                 # token, created = Token.objects.get_or_create(user=user)
-                return Response({'message' : 'login sucesfull' , 'user_id':user.pk} , status=200)
+                return Response({'message' : 'login sucesfull' , 'user_id':user.pk , "admin":user.admin} , status=200)
             else:
                 return Response({'message':'Incorrect Password'} , status=400)
         except User.DoesNotExist:
@@ -61,7 +61,7 @@ class AddCouponToUserView(APIView):
 
         # Ensure admin_phone is provided
         if not adminid:
-            return Response({'message': 'Admin phone number is required'}, status=400)
+            return Response({'message': 'Admin ID is required'}, status=400)
 
         # Check if the requesting user is an admin
         try:
@@ -94,7 +94,8 @@ class AddCouponToUserView(APIView):
             coupon = Coupon(
                 coupon_code=coupon_data['coupon_code'],
                 discount_percentage=coupon_data['discount_percentage'],
-                description=coupon_data['description'],  # fixed typo
+                description=coupon_data['description'],
+                minammount=coupon_data['minammount'],  # minaount should be from model typoo and the [minammount] is the api keyword in postman
                 valid_from=coupon_data['valid_from'],
                 valid_to=coupon_data['valid_to'],
                 active=coupon_data.get('active', True),  # default to True if not provided
@@ -117,9 +118,10 @@ class UseCouponView(APIView):
         # Get the coupon code and admin phone number from the request
         coupon_code = request.data.get('coupon_code')
         adminid = request.data.get('adminid')
+        amount = request.data.get('amount')
 
         if not adminid:
-            return Response({'message': 'Admin phone number is required'}, status=400)
+            return Response({'message': 'Admin ID is required'}, status=400)
 
         # Check if the requesting user is an admin
         try:
@@ -131,20 +133,27 @@ class UseCouponView(APIView):
 
         if not coupon_code:
             return Response({'message': 'Coupon code is required'}, status=400)
+        if not amount:
+            return Response({'message': 'Please enter an amount'}, status=400)
 
+        # Retrieve the coupon once and store it in a variable
         try:
-            # Find the coupon by coupon code
             coupon = Coupon.objects.get(coupon_code=coupon_code)
-
-            # Check if the coupon is still active
-            if coupon.active:
-                # Mark the coupon as used by setting `active` to False
-                coupon.active = False
-                coupon.save()
-
-                return Response({'message': 'Coupon has been used successfully.'}, status=200)
-            else:
-                return Response({'message': 'Coupon has already been used or expired.'}, status=400)
-
         except Coupon.DoesNotExist:
             return Response({'message': 'Coupon with the given code does not exist.'}, status=404)
+
+        # Check if the amount is less than the minimum amount required
+        if float(amount) < float(coupon.minammount):
+            return Response(
+                {'message': f"To use this coupon, a minimum amount of {coupon.minammount} is required."},
+                status=400
+            )
+
+        # Check if the coupon is still active
+        if coupon.active:
+            # Mark the coupon as used by setting `active` to False
+            coupon.active = False
+            coupon.save()
+            return Response({'message': 'Coupon has been used successfully.'}, status=200)
+        else:
+            return Response({'message': 'Coupon has already been used or expired.'}, status=400)
