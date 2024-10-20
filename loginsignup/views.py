@@ -154,6 +154,6 @@ class UseCouponView(APIView):
             # Mark the coupon as used by setting `active` to False
             coupon.active = False
             coupon.save()
-            return Response({'message': 'Coupon has been used successfully.'}, status=200)
+            return Response({'message': 'Coupon has been used successfully.' , 'percentage':coupon.discount_percentage}, status=200)
         else:
             return Response({'message': 'Coupon has already been used or expired.'}, status=400)
